@@ -1,0 +1,32 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+wheels/
+
+# Virtual environments
+.venv
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Telethon
+*.session
+*.session-journal
+
+# Test / tooling caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Runtime data
+runtime/
+logs/
+
+# macOS
+.DS_Store

@@ -1,0 +1,52 @@
+[project]
+name = "telegram-mt5-bridge"
+version = "0.1.0"
+description = "Telegram signal ingestion, analysis, normalization, and MT5 bridge middleware."
+readme = "README.md"
+authors = [
+    { name = "Raphael Schnell", email = "mail@raphaelschnell.ch" }
+]
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "fastapi>=0.141.1",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.15.0",
+    "telethon>=1.44,<2",
+    "uvicorn>=0.52.4",
+]
+
+[project.scripts]
+telegram-mt5-bridge = "telegram_mt5_bridge:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.3",
+]
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "I",
+    "B",
+    "UP",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,13 @@
+default_permissions = "project-edit"
+
+[permissions.project-edit]
+description = "Edit this project while denying access to local secrets."
+extends = ":workspace"
+
+[permissions.project-edit.filesystem.":workspace_roots"]
+".env" = "deny"
+"**/*.env" = "deny"
+"*.session" = "deny"
+"**/*.session" = "deny"
+"*.session-journal" = "deny"
+"**/*.session-journal" = "deny"
