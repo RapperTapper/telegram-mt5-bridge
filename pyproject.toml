@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-telegram-mt5-bridge = "telegram_mt5_bridge:main"
+telegram-mt5-bridge = "telegram_mt5_bridge.main:main"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]
