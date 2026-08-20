@@ -18,8 +18,11 @@ dependencies = [
 
 [project.scripts]
 telegram-mt5-bridge = "telegram_mt5_bridge.main:main"
+telegram-mt5-auth = "telegram_mt5_bridge.telegram.auth:main"
 telegram-mt5-collect = "telegram_mt5_bridge.telegram.collector:main"
 telegram-mt5-db-stats = "telegram_mt5_bridge.storage.stats:main"
+telegram-mt5-dialogs = "telegram_mt5_bridge.telegram.dialogs:main"
+telegram-mt5-doctor = "telegram_mt5_bridge.doctor:main"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]

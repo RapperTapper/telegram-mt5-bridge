@@ -4,6 +4,11 @@ from datetime import UTC, datetime
 
 from telethon import events
 
+from telegram_mt5_bridge.cli import (
+    NoAllowedChatsError,
+    abort_configuration_error,
+    abort_no_allowed_chats,
+)
 from telegram_mt5_bridge.config.logging import configure_logging
 from telegram_mt5_bridge.config.paths import (
     ensure_app_directories,
@@ -13,6 +18,7 @@ from telegram_mt5_bridge.config.paths import (
 from telegram_mt5_bridge.config.settings import (
     get_allowed_chat_ids,
     get_settings,
+    get_telegram_credentials,
 )
 from telegram_mt5_bridge.storage.database import (
     checkpoint_database,
@@ -64,16 +70,44 @@ def message_snapshot_from_event(
     )
 
 
+def resolve_deleted_message_chat_id(
+    *,
+    event_chat_id: int | None,
+    message_id: int,
+    allowed_chat_ids: set[int],
+    repository: TelegramMessageRepository,
+) -> int | None:
+    """Resolve the chat ID for a Telegram deletion event."""
+
+    if event_chat_id is not None:
+        if is_allowed_chat(event_chat_id, allowed_chat_ids):
+            return event_chat_id
+
+        return None
+
+    matching_chat_ids = repository.find_chat_ids_for_message(
+        message_id,
+        allowed_chat_ids,
+    )
+
+    if len(matching_chat_ids) == 1:
+        return matching_chat_ids[0]
+
+    return None
+
+
 async def run_collector() -> None:
     """Run the raw Telegram message collector."""
 
     settings = get_settings()
     configure_logging(settings.log_level)
 
+    get_telegram_credentials(settings)
+
     allowed_chat_ids = get_allowed_chat_ids(settings)
 
     if not allowed_chat_ids:
-        raise RuntimeError("No Telegram chats are configured in TELEGRAM_ALLOWED_CHAT_IDS.")
+        raise NoAllowedChatsError
 
     app_data_dir = get_app_data_dir()
     ensure_app_directories(app_data_dir)
@@ -135,44 +169,59 @@ async def run_collector() -> None:
     async def handle_deleted_message(
         event: events.MessageDeleted.Event,
     ) -> None:
-        if not is_allowed_chat(
-            event.chat_id,
-            allowed_chat_ids,
-        ):
-            return
-
-        if event.chat_id is None:
-            return
-
         event_date = utc_now()
+
+        stored_count = 0
+        unresolved_count = 0
 
         with session_factory.begin() as session:
             repository = TelegramMessageRepository(session)
 
             for message_id in event.deleted_ids:
+                chat_id = resolve_deleted_message_chat_id(
+                    event_chat_id=event.chat_id,
+                    message_id=message_id,
+                    allowed_chat_ids=allowed_chat_ids,
+                    repository=repository,
+                )
+
+                if chat_id is None:
+                    unresolved_count += 1
+
+                    logger.warning(
+                        "Could not resolve Telegram deletion message=%s event_chat=%s",
+                        message_id,
+                        event.chat_id,
+                    )
+
+                    continue
+
                 repository.record_deleted(
-                    chat_id=event.chat_id,
+                    chat_id=chat_id,
                     message_id=message_id,
                     event_date=event_date,
                 )
 
-        logger.info(
-            "Stored Telegram deletion chat=%s count=%s",
-            event.chat_id,
-            len(event.deleted_ids),
-        )
+                stored_count += 1
+
+        if stored_count:
+            logger.info(
+                "Stored Telegram deletion(s) count=%s",
+                stored_count,
+            )
+
+        if unresolved_count:
+            logger.warning(
+                "Unresolved Telegram deletion(s) count=%s",
+                unresolved_count,
+            )
 
     await client.start()
 
-    logger.info(
-        "Telegram collector running for %d configured chat(s).",
-        len(allowed_chat_ids),
-    )
-
-    logger.info(
-        "SQLite database: %s",
-        database_path,
-    )
+    logger.info("Telegram collector started.")
+    logger.info("Configured chats: %d", len(allowed_chat_ids))
+    logger.info("Database: %s", database_path)
+    logger.info("Press Ctrl+C to stop.")
 
     try:
         await client.run_until_disconnected()
@@ -186,7 +235,14 @@ async def run_collector() -> None:
 
 
 def main() -> None:
-    asyncio.run(run_collector())
+    try:
+        asyncio.run(run_collector())
+    except NoAllowedChatsError:
+        abort_no_allowed_chats()
+    except ValueError as error:
+        abort_configuration_error(error)
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":

@@ -77,6 +77,24 @@ class TelegramMessageRepository:
 
         self.session.add(event)
 
+    def find_chat_ids_for_message(
+        self,
+        message_id: int,
+        allowed_chat_ids: set[int],
+    ) -> list[int]:
+        """Find allowed chats containing a stored Telegram message ID."""
+
+        statement = (
+            select(TelegramMessageRecord.chat_id)
+            .where(
+                TelegramMessageRecord.message_id == message_id,
+                TelegramMessageRecord.chat_id.in_(allowed_chat_ids),
+            )
+            .distinct()
+        )
+
+        return list(self.session.scalars(statement))
+
     def record_new(
         self,
         snapshot: TelegramMessageSnapshot,

@@ -18,6 +18,7 @@ from telegram_mt5_bridge.storage.repositories import (
 from telegram_mt5_bridge.storage.schemas import (
     TelegramMessageSnapshot,
 )
+from telegram_mt5_bridge.storage.stats import collect_database_statistics
 
 
 def make_snapshot(
@@ -160,5 +161,105 @@ def test_delete_marks_message_deleted(
     assert record is not None
     assert record.deleted_at is not None
     assert event_count == 2
+
+    engine.dispose()
+
+
+def test_find_chat_id_for_message(
+    tmp_path: Path,
+) -> None:
+    engine, session_factory = create_test_database(tmp_path)
+
+    snapshot = make_snapshot()
+
+    with session_factory.begin() as session:
+        repository = TelegramMessageRepository(session)
+        repository.record_new(snapshot)
+
+    with session_factory() as session:
+        repository = TelegramMessageRepository(session)
+
+        chat_ids = repository.find_chat_ids_for_message(
+            snapshot.message_id,
+            {snapshot.chat_id},
+        )
+
+    assert chat_ids == [snapshot.chat_id]
+
+    engine.dispose()
+
+
+def test_find_chat_id_for_message_respects_allowlist(
+    tmp_path: Path,
+) -> None:
+    engine, session_factory = create_test_database(tmp_path)
+
+    snapshot = make_snapshot()
+
+    with session_factory.begin() as session:
+        repository = TelegramMessageRepository(session)
+        repository.record_new(snapshot)
+
+    with session_factory() as session:
+        repository = TelegramMessageRepository(session)
+
+        chat_ids = repository.find_chat_ids_for_message(
+            snapshot.message_id,
+            {-999999},
+        )
+
+    assert chat_ids == []
+
+    engine.dispose()
+
+
+def test_collect_database_statistics(tmp_path: Path) -> None:
+    engine, session_factory = create_test_database(tmp_path)
+
+    original = make_snapshot().model_copy(
+        update={
+            "reply_to_message_id": 41,
+            "has_media": True,
+            "media_type": "MessageMediaPhoto",
+        }
+    )
+
+    with session_factory.begin() as session:
+        repository = TelegramMessageRepository(session)
+        repository.record_new(original)
+
+    edit_time = datetime.now(UTC)
+    edited = original.model_copy(
+        update={
+            "text": "SELL GOLD",
+            "edit_date": edit_time,
+            "received_at": edit_time,
+        }
+    )
+
+    with session_factory.begin() as session:
+        repository = TelegramMessageRepository(session)
+        repository.record_edit(edited)
+        repository.record_deleted(
+            chat_id=edited.chat_id,
+            message_id=edited.message_id,
+            event_date=datetime.now(UTC),
+        )
+
+    with session_factory() as session:
+        statistics = collect_database_statistics(session)
+
+    assert statistics.message_count == 1
+    assert statistics.event_count == 3
+    assert statistics.event_counts == {
+        "deleted": 1,
+        "edit": 1,
+        "new": 1,
+    }
+    assert statistics.reply_count == 1
+    assert statistics.media_count == 1
+    assert statistics.edited_count == 1
+    assert statistics.deleted_count == 1
+    assert statistics.chat_counts == ((original.chat_id, 1),)
 
     engine.dispose()
