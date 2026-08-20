@@ -4,19 +4,28 @@ Telegram-to-MT5 middleware that currently collects raw Telegram messages in a lo
 database. Parsing, normalization, validation, and the MT5 bridge API follow in later phases.
 Trade execution and trade management remain inside the MT5 EA.
 
+New to the project? Follow the detailed German beginner guide:
+[SETUP.md](SETUP.md).
+
 ## First-time setup
 
 ### 1. Install uv
 
-Install `uv` using the official installation instructions:
-<https://docs.astral.sh/uv/getting-started/installation/>
+On macOS with Homebrew:
+
+```console
+brew install uv
+```
+
+Alternatively, use the
+[official installation instructions](https://docs.astral.sh/uv/getting-started/installation/).
 
 ### 2. Install the project
 
 ```console
-git clone <repository-url>
+git clone https://github.com/RapperTapper/telegram-mt5-bridge.git
 cd telegram-mt5-bridge
-uv sync
+uv sync --locked
 ```
 
 ### 3. Configure Telegram credentials
