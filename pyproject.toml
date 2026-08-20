@@ -11,12 +11,15 @@ dependencies = [
     "fastapi>=0.141.1",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.15.0",
+    "sqlalchemy>=2,<3",
     "telethon>=1.44,<2",
     "uvicorn>=0.52.4",
 ]
 
 [project.scripts]
 telegram-mt5-bridge = "telegram_mt5_bridge.main:main"
+telegram-mt5-collect = "telegram_mt5_bridge.telegram.collector:main"
+telegram-mt5-db-stats = "telegram_mt5_bridge.storage.stats:main"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]

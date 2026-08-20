@@ -74,3 +74,16 @@ ingestion
 → validation
 → outbox
 → MT5 API
+
+## Raw Telegram Data
+
+Do not inspect, expose, commit, or upload local Telegram runtime databases unless explicitly requested.
+
+Local database files include:
+
+- `*.sqlite`
+- `*.sqlite3`
+- `*.sqlite3-wal`
+- `*.sqlite3-shm`
+
+Raw Telegram messages must not be printed to logs by default.

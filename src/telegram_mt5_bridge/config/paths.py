@@ -52,6 +52,12 @@ def get_runtime_dir(app_data_dir: Path | None = None) -> Path:
     return base_dir / "runtime"
 
 
+def get_database_path(app_data_dir: Path | None = None) -> Path:
+    """Return the path of the local SQLite message database."""
+    base_dir = app_data_dir or get_app_data_dir()
+    return get_runtime_dir(base_dir) / "messages.sqlite3"
+
+
 def ensure_app_directories(app_data_dir: Path | None = None) -> None:
     """Create the directories required by the application."""
     base_dir = app_data_dir or get_app_data_dir()

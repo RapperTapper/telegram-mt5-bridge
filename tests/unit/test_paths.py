@@ -4,6 +4,7 @@ from telegram_mt5_bridge.config.paths import (
     APP_NAME,
     ensure_app_directories,
     get_app_data_dir,
+    get_database_path,
     get_log_dir,
     get_runtime_dir,
     get_telegram_session_path,
@@ -69,6 +70,12 @@ def test_runtime_paths() -> None:
 
     assert get_log_dir(base_dir) == base_dir / "logs"
     assert get_runtime_dir(base_dir) == base_dir / "runtime"
+
+
+def test_database_path() -> None:
+    base_dir = Path("/tmp/telegram-mt5-test")
+
+    assert get_database_path(base_dir) == (base_dir / "runtime" / "messages.sqlite3")
 
 
 def test_ensure_app_directories(tmp_path: Path) -> None:
